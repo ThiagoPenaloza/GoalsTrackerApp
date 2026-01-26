@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Milestone } from '@/types'
 import { createClient } from '@/lib/supabase-client'
+import { useRouter } from 'next/navigation'
 import { Check, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -11,90 +12,61 @@ interface MilestoneListProps {
   goalId: string
 }
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-]
-
-export function MilestoneList({ milestones: initialMilestones, goalId }: MilestoneListProps) {
-  const [milestones, setMilestones] = useState(initialMilestones)
-  const [updating, setUpdating] = useState<string | null>(null)
+export function MilestoneList({ milestones, goalId }: MilestoneListProps) {
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const router = useRouter()
   const supabase = createClient()
 
-  const sortedMilestones = [...milestones].sort((a, b) => a.month - b.month)
+  const toggleMilestone = async (milestone: Milestone) => {
+    setLoadingId(milestone.id)
 
-  const handleToggle = async (milestone: Milestone) => {
-    setUpdating(milestone.id)
-
-    const newCompleted = !milestone.is_completed
-
-    const { error } = await supabase
+    await supabase
       .from('milestones')
       .update({
-        is_completed: newCompleted,
-        completed_at: newCompleted ? new Date().toISOString() : null,
+        is_completed: !milestone.is_completed,
+        completed_at: !milestone.is_completed ? new Date().toISOString() : null,
       })
       .eq('id', milestone.id)
 
-    if (!error) {
-      setMilestones((prev) =>
-        prev.map((m) =>
-          m.id === milestone.id
-            ? { ...m, is_completed: newCompleted, completed_at: newCompleted ? new Date().toISOString() : null }
-            : m
-        )
-      )
-    }
-
-    setUpdating(null)
+    router.refresh()
+    setLoadingId(null)
   }
 
   return (
-    <div className="space-y-3">
-      {sortedMilestones.map((milestone) => (
-        <div
-          key={milestone.id}
+    <div className="space-y-2">
+      {milestones.map((m) => (
+        <button
+          key={m.id}
+          onClick={() => toggleMilestone(m)}
+          disabled={loadingId === m.id}
           className={cn(
-            'flex items-start gap-3 p-4 rounded-lg border transition-all',
-            milestone.is_completed
-              ? 'bg-success/5 border-success/20'
-              : 'bg-white border-gray-200 hover:border-gray-300'
+            'w-full flex items-start gap-3 p-4 rounded-card border text-left transition-all',
+            m.is_completed
+              ? 'bg-surface-raised border-line'
+              : 'bg-surface border-line hover:border-accent/30'
           )}
         >
-          <button
-            onClick={() => handleToggle(milestone)}
-            disabled={updating === milestone.id}
-            className={cn(
-              'flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
-              milestone.is_completed
-                ? 'bg-success border-success text-white'
-                : 'border-gray-300 hover:border-primary',
-              updating === milestone.id && 'opacity-50'
-            )}
-          >
-            {milestone.is_completed ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <Circle className="w-3 h-3 text-transparent" />
-            )}
-          </button>
-
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
-                {MONTH_NAMES[milestone.month - 1]}
-              </span>
-            </div>
-            <p
-              className={cn(
-                'text-gray-700',
-                milestone.is_completed && 'line-through text-gray-500'
-              )}
-            >
-              {milestone.title}
-            </p>
+          <div className={cn(
+            'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors',
+            m.is_completed
+              ? 'bg-accent border-accent'
+              : 'border-line'
+          )}>
+            {m.is_completed && <Check size={12} className="text-white" strokeWidth={3} />}
           </div>
-        </div>
+          <div className="flex-1 min-w-0">
+            <p className={cn(
+              'text-sm font-medium',
+              m.is_completed ? 'text-txt-muted line-through' : 'text-txt'
+            )}>
+              {m.title}
+            </p>
+            <p className="text-xs text-txt-muted mt-0.5">Month {m.month}</p>
+          </div>
+          {!m.is_completed && (
+            <Circle size={14} className="text-txt-muted flex-shrink-0 mt-1" />
+          )}
+        </button>
       ))}
     </div>
   )

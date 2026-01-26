@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { Goal, MOOD_OPTIONS, MoodType } from '@/types'
 import { Button } from './ui/Button'
-import { Card } from './ui/Card'
 import { cn } from '@/lib/utils'
 
 interface CheckinFormProps {
@@ -14,162 +13,138 @@ interface CheckinFormProps {
 }
 
 export function CheckinForm({ goals, userId }: CheckinFormProps) {
-  const [selectedGoal, setSelectedGoal] = useState<string>(goals[0]?.id || '')
-  const [progressNote, setProgressNote] = useState('')
+  const [selectedGoal, setSelectedGoal] = useState('')
   const [mood, setMood] = useState<MoodType>('good')
+  const [note, setNote] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
-  const getCurrentWeek = () => {
-    const now = new Date()
-    const start = new Date(now.getFullYear(), 0, 1)
-    const diff = now.getTime() - start.getTime()
-    const oneWeek = 1000 * 60 * 60 * 24 * 7
-    return Math.ceil(diff / oneWeek)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedGoal) return
     setIsLoading(true)
-    setError(null)
-    setFeedback(null)
 
+    const weekNumber = Math.ceil(
+      (new Date().getTime() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 604800000
+    )
+
+    const { data: checkin, error } = await supabase
+      .from('checkins')
+      .insert({
+        user_id: userId,
+        goal_id: selectedGoal,
+        week_number: weekNumber,
+        progress_note: note || null,
+        mood,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      setIsLoading(false)
+      return
+    }
+
+    // Request AI feedback
     try {
-      const weekNumber = getCurrentWeek()
-
-      // Create check-in
-      const { data: checkin, error: checkinError } = await supabase
-        .from('checkins')
-        .insert({
-          user_id: userId,
-          goal_id: selectedGoal,
-          week_number: weekNumber,
-          progress_note: progressNote || null,
-          mood,
-        })
-        .select()
-        .single()
-
-      if (checkinError) throw checkinError
-
-      // Get goal title for AI feedback
-      const goal = goals.find((g) => g.id === selectedGoal)
-
-      // Generate AI feedback
-      const response = await fetch('/api/ai/coach-feedback', {
+      const res = await fetch('/api/ai/checkin-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          checkinId: checkin.id,
-          goalTitle: goal?.title,
-          progressNote,
-          mood,
-          weekNumber,
-        }),
+        body: JSON.stringify({ checkinId: checkin.id, mood, note }),
       })
-
-      if (response.ok) {
-        const data = await response.json()
+      if (res.ok) {
+        const data = await res.json()
         setFeedback(data.feedback)
       }
-
-      setProgressNote('')
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit check-in')
-    } finally {
-      setIsLoading(false)
+    } catch {
+      // AI feedback is optional
     }
+
+    setIsLoading(false)
+    router.refresh()
   }
 
-  if (goals.length === 0) {
+  if (feedback) {
     return (
-      <Card>
-        <p className="text-gray-500 text-center py-4">
-          Create a goal first to start checking in on your progress.
-        </p>
-      </Card>
+      <div className="bg-surface border border-line rounded-card p-6 text-center">
+        <div className="w-12 h-12 rounded-xl bg-accent-light flex items-center justify-center mx-auto mb-4">
+          <span className="text-xl">
+            {MOOD_OPTIONS.find((m) => m.value === mood)?.emoji}
+          </span>
+        </div>
+        <h3 className="font-display font-bold text-lg text-txt mb-3">AI Coach Says</h3>
+        <p className="text-txt-secondary leading-relaxed italic">&ldquo;{feedback}&rdquo;</p>
+        <Button onClick={() => { setFeedback(null); setNote(''); setSelectedGoal('') }} variant="secondary" className="mt-6">
+          New Check-in
+        </Button>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <h2 className="text-xl font-semibold text-text mb-4">Weekly Check-in</h2>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Goal selector */}
+      <div>
+        <label className="block text-xs font-medium text-txt-secondary tracking-wide uppercase mb-2">
+          Select Goal
+        </label>
+        <select
+          value={selectedGoal}
+          onChange={(e) => setSelectedGoal(e.target.value)}
+          className="w-full px-4 py-2.5 bg-transparent border border-line rounded-xl text-txt focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+          required
+        >
+          <option value="">Choose a goal...</option>
+          {goals.map((g) => (
+            <option key={g.id} value={g.id}>{g.title}</option>
+          ))}
+        </select>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Goal
-          </label>
-          <select
-            value={selectedGoal}
-            onChange={(e) => setSelectedGoal(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-          >
-            {goals.map((goal) => (
-              <option key={goal.id} value={goal.id}>
-                {goal.title}
-              </option>
-            ))}
-          </select>
+      {/* Mood */}
+      <div>
+        <label className="block text-xs font-medium text-txt-secondary tracking-wide uppercase mb-3">
+          How are you feeling?
+        </label>
+        <div className="flex gap-2">
+          {MOOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setMood(opt.value)}
+              className={cn(
+                'flex-1 flex flex-col items-center gap-1 py-3 rounded-xl border transition-all',
+                mood === opt.value
+                  ? 'border-accent bg-accent-light'
+                  : 'border-line hover:border-accent/30'
+              )}
+            >
+              <span className="text-lg">{opt.emoji}</span>
+              <span className="text-xs font-medium text-txt-secondary">{opt.label}</span>
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            How are you feeling about this goal?
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {MOOD_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setMood(option.value)}
-                className={cn(
-                  'px-4 py-2 rounded-lg border-2 transition-all flex items-center gap-2',
-                  mood === option.value
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                )}
-              >
-                <span>{option.emoji}</span>
-                <span>{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Note */}
+      <div>
+        <label className="block text-xs font-medium text-txt-secondary tracking-wide uppercase mb-2">
+          Progress Note
+        </label>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full px-4 py-2.5 bg-transparent border border-line rounded-xl text-txt placeholder:text-txt-muted resize-none focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+          rows={4}
+          placeholder="What progress did you make this week?"
+        />
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Progress Notes (Optional)
-          </label>
-          <textarea
-            value={progressNote}
-            onChange={(e) => setProgressNote(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none min-h-[100px]"
-            placeholder="What did you accomplish this week? Any challenges?"
-          />
-        </div>
-
-        {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        {feedback && (
-          <div className="bg-primary/5 border border-primary/20 px-4 py-3 rounded-lg">
-            <p className="text-sm font-medium text-primary mb-1">AI Coach Feedback</p>
-            <p className="text-gray-700">{feedback}</p>
-          </div>
-        )}
-
-        <Button type="submit" isLoading={isLoading} className="w-full">
-          {isLoading ? 'Submitting...' : 'Submit Check-in'}
-        </Button>
-      </form>
-    </Card>
+      <Button type="submit" isLoading={isLoading} className="w-full">
+        {isLoading ? 'Submitting...' : 'Submit Check-in'}
+      </Button>
+    </form>
   )
 }

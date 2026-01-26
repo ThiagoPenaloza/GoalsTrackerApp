@@ -2,10 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* ── Base ────────────────────────────────────────── */
+:root {
+  --bg: #FFFBF5;
+  --surface: #FFFFFF;
+  --surface-raised: #FFF7ED;
+  --text: #1C1917;
+  --text-secondary: #78716C;
+  --text-muted: #A8A29E;
+  --border: #E7E5E4;
+  --border-light: #F5F5F4;
+  --orange: #F97316;
+  --orange-light: #FFEDD5;
+  --orange-glow: #FB923C;
+}
+
+.dark {
+  --bg: #000000;
+  --surface: #0A0A0A;
+  --surface-raised: #171717;
+  --text: #FAFAF9;
+  --text-secondary: #A8A29E;
+  --text-muted: #57534E;
+  --border: #262626;
+  --border-light: #1C1C1C;
+  --orange: #F97316;
+  --orange-light: #431407;
+  --orange-glow: #FB923C;
+}
+
+html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #F9FAFB;
-  color: #111827;
+  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Staggered page-enter fades (CSS only) ───────── */
+.stagger-1, .stagger-2, .stagger-3, .stagger-4, .stagger-5 {
+  opacity: 0;
+  animation: fade-up 0.45s ease-out forwards;
+}
+.stagger-1 { animation-delay: 0.04s; }
+.stagger-2 { animation-delay: 0.08s; }
+.stagger-3 { animation-delay: 0.14s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.28s; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Shimmer for loading skeletons ──────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--border-light) 25%, var(--border) 50%, var(--border-light) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ── Focus ring ─────────────────────────────────── */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--orange);
+}
+
+/* ── Scrollbar ──────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Reduced motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

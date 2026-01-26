@@ -2,38 +2,50 @@ import { cn } from '@/lib/utils'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
-  error?: string
 }
 
-export function Input({
-  label,
-  error,
-  className,
-  id,
-  ...props
-}: InputProps) {
+export function Input({ label, id, className, ...props }: InputProps) {
   return (
-    <div className="w-full">
+    <div>
       {label && (
-        <label
-          htmlFor={id}
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
+        <label htmlFor={id} className="block text-xs font-medium text-txt-secondary tracking-wide uppercase mb-2">
           {label}
         </label>
       )}
       <input
         id={id}
         className={cn(
-          'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all',
-          error && 'border-red-500 focus:ring-red-500',
+          'w-full px-4 py-2.5 bg-transparent border border-line rounded-xl text-txt placeholder:text-txt-muted',
+          'focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all',
           className
         )}
         {...props}
       />
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+    </div>
+  )
+}
+
+interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string
+}
+
+export function Textarea({ label, id, className, ...props }: TextareaProps) {
+  return (
+    <div>
+      {label && (
+        <label htmlFor={id} className="block text-xs font-medium text-txt-secondary tracking-wide uppercase mb-2">
+          {label}
+        </label>
       )}
+      <textarea
+        id={id}
+        className={cn(
+          'w-full px-4 py-2.5 bg-transparent border border-line rounded-xl text-txt placeholder:text-txt-muted resize-none',
+          'focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all',
+          className
+        )}
+        {...props}
+      />
     </div>
   )
 }

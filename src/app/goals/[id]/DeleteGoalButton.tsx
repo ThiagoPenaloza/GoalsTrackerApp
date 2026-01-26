@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 interface DeleteGoalButtonProps {
   goalId: string
@@ -17,12 +18,7 @@ export function DeleteGoalButton({ goalId }: DeleteGoalButtonProps) {
 
   const handleDelete = async () => {
     setIsDeleting(true)
-
-    const { error } = await supabase
-      .from('goals')
-      .delete()
-      .eq('id', goalId)
-
+    const { error } = await supabase.from('goals').delete().eq('id', goalId)
     if (!error) {
       router.push('/goals')
       router.refresh()
@@ -37,18 +33,14 @@ export function DeleteGoalButton({ goalId }: DeleteGoalButtonProps) {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setShowConfirm(false)}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-xs text-txt-secondary hover:text-txt font-medium px-3 py-1.5"
           disabled={isDeleting}
         >
           Cancel
         </button>
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="text-sm text-red-600 hover:text-red-700 font-medium"
-        >
-          {isDeleting ? 'Deleting...' : 'Confirm Delete'}
-        </button>
+        <Button onClick={handleDelete} disabled={isDeleting} variant="danger" size="sm">
+          {isDeleting ? 'Deleting...' : 'Confirm'}
+        </Button>
       </div>
     )
   }
@@ -56,10 +48,10 @@ export function DeleteGoalButton({ goalId }: DeleteGoalButtonProps) {
   return (
     <button
       onClick={() => setShowConfirm(true)}
-      className="text-gray-400 hover:text-red-600 transition-colors"
+      className="p-2 text-txt-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
       title="Delete goal"
     >
-      <Trash2 className="w-5 h-5" />
+      <Trash2 size={16} />
     </button>
   )
 }

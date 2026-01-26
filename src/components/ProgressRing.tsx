@@ -2,60 +2,39 @@ import { cn } from '@/lib/utils'
 
 interface ProgressRingProps {
   progress: number
-  size?: 'sm' | 'md' | 'lg'
-  className?: string
-  showPercentage?: boolean
+  size?: 'sm' | 'md'
 }
 
-export function ProgressRing({
-  progress,
-  size = 'md',
-  className,
-  showPercentage = true,
-}: ProgressRingProps) {
-  const sizes = {
-    sm: { container: 80, stroke: 6, fontSize: 'text-sm' },
-    md: { container: 120, stroke: 8, fontSize: 'text-xl' },
-    lg: { container: 160, stroke: 10, fontSize: 'text-3xl' },
-  }
-
-  const { container, stroke, fontSize } = sizes[size]
-  const radius = (container - stroke) / 2
-  const circumference = radius * 2 * Math.PI
-  const offset = circumference - (progress / 100) * circumference
+export function ProgressRing({ progress, size = 'md' }: ProgressRingProps) {
+  const dims = size === 'sm' ? 40 : 56
+  const stroke = size === 'sm' ? 3 : 4
+  const radius = (dims - stroke) / 2
+  const circ = 2 * Math.PI * radius
+  const offset = circ - (progress / 100) * circ
 
   return (
-    <div className={cn('relative inline-flex items-center justify-center', className)}>
-      <svg width={container} height={container} className="transform -rotate-90">
-        {/* Background circle */}
+    <div className="relative" style={{ width: dims, height: dims }}>
+      <svg width={dims} height={dims} className="-rotate-90">
+        <circle cx={dims / 2} cy={dims / 2} r={radius} fill="none" stroke="var(--border)" strokeWidth={stroke} />
         <circle
-          cx={container / 2}
-          cy={container / 2}
+          cx={dims / 2}
+          cy={dims / 2}
           r={radius}
           fill="none"
-          stroke="currentColor"
+          stroke="var(--orange)"
           strokeWidth={stroke}
-          className="text-gray-200"
-        />
-        {/* Progress circle */}
-        <circle
-          cx={container / 2}
-          cy={container / 2}
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={stroke}
-          strokeDasharray={circumference}
+          strokeDasharray={circ}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className="text-primary transition-all duration-500"
+          className="transition-all duration-500"
         />
       </svg>
-      {showPercentage && (
-        <span className={cn('absolute font-bold text-text', fontSize)}>
-          {Math.round(progress)}%
-        </span>
-      )}
+      <span className={cn(
+        'absolute inset-0 flex items-center justify-center font-display font-bold text-txt',
+        size === 'sm' ? 'text-[10px]' : 'text-xs'
+      )}>
+        {progress}%
+      </span>
     </div>
   )
 }

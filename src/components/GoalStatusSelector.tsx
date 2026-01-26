@@ -4,102 +4,63 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { GoalStatus } from '@/types'
+import { ChevronDown, Check, X, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Check, X, Circle, ChevronDown } from 'lucide-react'
+
+const statusConfig: Record<GoalStatus, { label: string; color: string; icon: React.ElementType }> = {
+  active:    { label: 'Active',    color: 'text-accent bg-accent-light',        icon: Circle },
+  completed: { label: 'Done',      color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950', icon: Check },
+  abandoned: { label: 'Dropped',   color: 'text-red-500 bg-red-50 dark:text-red-400 dark:bg-red-950',     icon: X },
+}
 
 interface GoalStatusSelectorProps {
   goalId: string
   currentStatus: GoalStatus
 }
 
-const STATUS_OPTIONS: { value: GoalStatus; label: string; icon: typeof Check; color: string }[] = [
-  { value: 'active', label: 'Active', icon: Circle, color: 'text-primary bg-primary/10' },
-  { value: 'completed', label: 'Completed', icon: Check, color: 'text-success bg-success/10' },
-  { value: 'abandoned', label: 'Abandoned', icon: X, color: 'text-gray-500 bg-gray-100' },
-]
-
 export function GoalStatusSelector({ goalId, currentStatus }: GoalStatusSelectorProps) {
-  const [status, setStatus] = useState<GoalStatus>(currentStatus)
-  const [isOpen, setIsOpen] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
+  const [open, setOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
-  const currentOption = STATUS_OPTIONS.find((opt) => opt.value === status)
-
-  const handleStatusChange = async (newStatus: GoalStatus) => {
-    if (newStatus === status) {
-      setIsOpen(false)
-      return
-    }
-
-    setIsUpdating(true)
-    setIsOpen(false)
-
-    const { error } = await supabase
-      .from('goals')
-      .update({
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', goalId)
-
-    if (!error) {
-      setStatus(newStatus)
-      router.refresh()
-    }
-
-    setIsUpdating(false)
+  const handleChange = async (status: GoalStatus) => {
+    setOpen(false)
+    await supabase.from('goals').update({ status }).eq('id', goalId)
+    router.refresh()
   }
+
+  const current = statusConfig[currentStatus]
 
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isUpdating}
+        onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all',
-          currentOption?.color,
-          'border-current/20 hover:border-current/40',
-          isUpdating && 'opacity-50 cursor-not-allowed'
+          'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors',
+          current.color
         )}
       >
-        {currentOption && (
-          <>
-            <currentOption.icon className="w-4 h-4" />
-            <span className="text-sm font-medium">{currentOption.label}</span>
-            <ChevronDown className={cn('w-4 h-4 transition-transform', isOpen && 'rotate-180')} />
-          </>
-        )}
+        {current.label}
+        <ChevronDown size={12} />
       </button>
 
-      {isOpen && (
+      {open && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border z-20 py-1">
-            {STATUS_OPTIONS.map((option) => {
-              const Icon = option.icon
-              const isSelected = option.value === status
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => handleStatusChange(option.value)}
-                  className={cn(
-                    'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors',
-                    isSelected
-                      ? option.color
-                      : 'text-gray-700 hover:bg-gray-50'
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{option.label}</span>
-                  {isSelected && <Check className="w-4 h-4 ml-auto" />}
-                </button>
-              )
-            })}
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute top-full left-0 mt-1 bg-surface border border-line rounded-xl shadow-card-hover py-1 z-20 min-w-[120px]">
+            {(Object.entries(statusConfig) as [GoalStatus, typeof current][]).map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => handleChange(key)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium hover:bg-surface-raised transition-colors',
+                  key === currentStatus ? 'text-accent' : 'text-txt-secondary'
+                )}
+              >
+                <cfg.icon size={14} />
+                {cfg.label}
+              </button>
+            ))}
           </div>
         </>
       )}
