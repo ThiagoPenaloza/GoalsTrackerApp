@@ -35,11 +35,11 @@ export function Navbar({ user }: NavbarProps) {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center">
               <Target size={16} className="text-white" strokeWidth={2.5} />
             </div>
-            <span className="font-display font-bold text-txt tracking-tight hidden sm:block">
-              MyGoals AI
+            <span className="font-display font-semibold text-txt hidden sm:block" style={{ fontStyle: 'italic' }}>
+              MyGoals
             </span>
           </Link>
 

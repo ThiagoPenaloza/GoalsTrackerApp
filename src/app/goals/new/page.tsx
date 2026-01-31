@@ -53,7 +53,7 @@ export default function NewGoalPage() {
       const response = await fetch('/api/ai/generate-milestones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goalId: goal.id, title, description, category }),
+        body: JSON.stringify({ goalId: goal.id, title, description, category, targetDate: targetDate || null }),
       })
       if (!response.ok) console.error('Failed to generate milestones, but goal was created')
 

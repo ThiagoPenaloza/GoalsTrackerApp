@@ -15,13 +15,24 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/auth/login')
 
-  const [goalsResult, milestonesResult, checkinsResult] = await Promise.all([
-    supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-    supabase.from('milestones').select('*'),
+  // First get user's goals
+  const { data: goalsData } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const goals = (goalsData || []) as Goal[]
+  const goalIds = goals.map((g) => g.id)
+
+  // Then fetch milestones ONLY for user's goals and checkins
+  const [milestonesResult, checkinsResult] = await Promise.all([
+    goalIds.length > 0
+      ? supabase.from('milestones').select('*').in('goal_id', goalIds)
+      : Promise.resolve({ data: [] }),
     supabase.from('checkins').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
   ])
 
-  const goals = (goalsResult.data || []) as Goal[]
   const milestones = (milestonesResult.data || []) as Milestone[]
   const latestCheckin = (checkinsResult.data?.[0] || null) as Checkin | null
 

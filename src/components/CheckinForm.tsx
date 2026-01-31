@@ -48,11 +48,18 @@ export function CheckinForm({ goals, userId }: CheckinFormProps) {
     }
 
     // Request AI feedback
+    const goal = goals.find((g) => g.id === selectedGoal)
     try {
       const res = await fetch('/api/ai/checkin-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ checkinId: checkin.id, mood, note }),
+        body: JSON.stringify({
+          checkinId: checkin.id,
+          goalTitle: goal?.title,
+          progressNote: note,
+          mood,
+          weekNumber,
+        }),
       })
       if (res.ok) {
         const data = await res.json()

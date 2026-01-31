@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-client'
-import { Target, UserPlus } from 'lucide-react'
+import { Target, UserPlus, Mail, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -14,7 +13,7 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [isSuccess, setIsSuccess] = useState(false)
   const supabase = createClient()
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -25,12 +24,80 @@ export default function SignUpPage() {
     if (password !== confirmPassword) { setError('Passwords do not match'); setIsLoading(false); return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); setIsLoading(false); return }
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error, data } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
 
     if (error) { setError(error.message); setIsLoading(false); return }
 
-    router.push('/dashboard')
-    router.refresh()
+    // Check if email confirmation is required
+    // If user.identities is empty, it means email confirmation is pending
+    if (data.user && data.user.identities?.length === 0) {
+      setError('An account with this email already exists. Please sign in or use a different email.')
+      setIsLoading(false)
+      return
+    }
+
+    setIsSuccess(true)
+    setIsLoading(false)
+  }
+
+  // Show success message after signup
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4">
+              <CheckCircle size={24} className="text-white" strokeWidth={2.5} />
+            </div>
+            <span className="font-display font-bold text-2xl text-txt tracking-tight">Check Your Email</span>
+          </div>
+
+          <div className="bg-surface border border-line rounded-card p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-accent-light flex items-center justify-center mx-auto mb-6">
+              <Mail size={28} className="text-accent" />
+            </div>
+
+            <h2 className="font-display font-bold text-lg text-txt mb-3">
+              Confirmation email sent!
+            </h2>
+
+            <p className="text-txt-secondary text-sm mb-6 leading-relaxed">
+              We&apos;ve sent a confirmation link to<br />
+              <span className="font-semibold text-txt">{email}</span>
+            </p>
+
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl p-4 mb-6">
+              <p className="text-amber-700 dark:text-amber-400 text-sm">
+                Please check your inbox and click the confirmation link to activate your account.
+              </p>
+            </div>
+
+            <p className="text-txt-muted text-xs mb-6">
+              Didn&apos;t receive the email? Check your spam folder or try signing up again.
+            </p>
+
+            <Link
+              href="/auth/login"
+              className="inline-flex items-center justify-center gap-2 bg-accent text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-orange-600 transition-colors"
+            >
+              Go to Sign In
+            </Link>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/" className="text-txt-muted hover:text-txt transition-colors text-sm">
+              &larr; Back to home
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

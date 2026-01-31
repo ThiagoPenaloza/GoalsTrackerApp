@@ -26,7 +26,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const next = theme === 'light' ? 'dark' : 'light'
     setTheme(next)
     localStorage.setItem('theme', next)
-    document.documentElement.classList.toggle('dark', next === 'dark')
+
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        document.documentElement.classList.toggle('dark', next === 'dark')
+      })
+    } else {
+      document.documentElement.classList.toggle('dark', next === 'dark')
+    }
   }
 
   return (

@@ -19,9 +19,14 @@ export default async function GoalsPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  const { data: milestones } = await supabase.from('milestones').select('*')
-
   const typedGoals = (goals || []) as Goal[]
+  const goalIds = typedGoals.map((g) => g.id)
+
+  // Only fetch milestones for user's own goals
+  const { data: milestones } = goalIds.length > 0
+    ? await supabase.from('milestones').select('*').in('goal_id', goalIds)
+    : { data: [] }
+
   const typedMilestones = (milestones || []) as Milestone[]
 
   return (

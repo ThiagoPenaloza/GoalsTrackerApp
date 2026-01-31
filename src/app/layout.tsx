@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import { Manrope, DM_Sans } from 'next/font/google'
+import { Fraunces, DM_Sans } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { Agentation } from 'agentation'
 
-const manrope = Manrope({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  variable: '--font-manrope',
+  variable: '--font-fraunces',
   display: 'swap',
 })
 
@@ -22,12 +23,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${manrope.variable} ${dmSans.variable}`}>
-      <body className="min-h-screen antialiased font-sans bg-bg text-txt">
+    <html lang="en" suppressHydrationWarning className={`${fraunces.variable} ${dmSans.variable}`}>
+      <body className="min-h-screen antialiased font-sans bg-bg text-txt noise-overlay">
         <ThemeProvider>
           {children}
         </ThemeProvider>
+        {process.env.NODE_ENV === 'development' && <Agentation />}
       </body>
     </html>
   )
 }
+

@@ -6,6 +6,16 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
+  const error = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
+
+  // Handle OAuth/email errors from Supabase
+  if (error) {
+    const errorMessage = errorDescription || error
+    return NextResponse.redirect(
+      `${origin}/auth/login?error=${encodeURIComponent(errorMessage)}`
+    )
+  }
 
   if (code) {
     const cookieStore = await cookies()
@@ -27,12 +37,20 @@ export async function GET(request: Request) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
+    if (!exchangeError) {
+      // Email confirmed successfully, redirect to dashboard
       return NextResponse.redirect(`${origin}${next}`)
     }
+
+    // Handle specific exchange errors
+    const errorMsg = exchangeError.message || 'Could not authenticate'
+    return NextResponse.redirect(
+      `${origin}/auth/login?error=${encodeURIComponent(errorMsg)}`
+    )
   }
 
-  return NextResponse.redirect(`${origin}/auth/login?error=Could not authenticate`)
+  // No code provided
+  return NextResponse.redirect(`${origin}/auth/login?error=Invalid confirmation link`)
 }

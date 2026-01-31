@@ -74,11 +74,12 @@ Give motivational, actionable feedback. Be warm but concise. Focus on celebratin
 
     const feedback = chatCompletion.choices[0].message.content?.trim() || 'Keep up the great work on your goals!'
 
-    // Update the check-in with AI feedback
+    // Update the check-in with AI feedback - ONLY if it belongs to current user
     const { error: updateError } = await supabase
       .from('checkins')
       .update({ ai_feedback: feedback })
       .eq('id', checkinId)
+      .eq('user_id', user.id)
 
     if (updateError) {
       console.error('Failed to update check-in:', updateError)
